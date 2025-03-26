@@ -6,6 +6,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<div>OPA</div>} />
         <Route path="/client/:roomId" element={<Client />} />
       </Routes>
     </Router>
