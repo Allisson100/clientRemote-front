@@ -1,0 +1,16 @@
+{
+    "rewrites": [
+      {
+        "source": "/client/:roomId",
+        "destination": "/index.html"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/client/:roomId",
+        "destination": "/client/:roomId",
+        "statusCode": 200
+      }
+    ]
+  }
+  
