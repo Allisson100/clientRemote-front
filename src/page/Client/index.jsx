@@ -87,14 +87,25 @@ export default function Client() {
       onClick={handleMouseClick} // Adiciona captura de clique
       onKeyDown={handleKeyDown} // Adiciona captura de tecla pressionada
       tabIndex={0} // Garante que o evento de teclado funcione
-      style={{ width: "100vw", height: "100vh", background: "#eee" }}
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#eee",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "column",
+      }}
     >
-      <h1>Cliente Conectado na Sala {roomId}</h1>
-      <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
+      <div>
+        <h1>Cliente Conectado na Sala {roomId}</h1>
+        <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
+      </div>
+
       <video
         ref={videoRef}
         autoPlay
-        style={{ width: "450px", border: "1px solid black" }}
+        style={{ width: "90vw", height: "90vh", border: "1px solid black" }}
       />
     </div>
   );
