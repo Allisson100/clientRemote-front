@@ -91,6 +91,44 @@ export default function Client() {
     socket.emit("moveMouse", { roomId, x: touch.clientX, y: touch.clientY });
   };
 
+  useEffect(() => {
+    let lastTouchTime = 0;
+    const doubleTapThreshold = 300; // Intervalo máximo entre toques em milissegundos
+
+    const handleTouchStart = (event) => {
+      const currentTime = new Date().getTime();
+      if (currentTime - lastTouchTime <= doubleTapThreshold) {
+        // Detectou um duplo toque
+        console.log("Duplo toque detectado!");
+        // Aqui, você pode emitir um evento para o servidor ou realizar outra ação desejada
+        socket.emit("mouseDown");
+      }
+      lastTouchTime = currentTime;
+    };
+
+    // Enviar eventos de teclado
+    const handleKeyDown = (event) => {
+      socket.emit("keyboardEvent", { key: event.key });
+    };
+
+    // Enviar eventos de mouse
+
+    const handleMouseDown = (event) => {
+      socket.emit("mouseDown", { button: event.button });
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("touchstart", handleTouchStart);
+
+    // Limpeza dos event listeners
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("touchstart", handleTouchStart);
+    };
+  }, []);
+
   return (
     <div
       onMouseMove={handleMouseMove}
