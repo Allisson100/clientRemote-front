@@ -10,14 +10,11 @@ const socket = io("https://a0e9-177-72-141-5.ngrok-free.app", {
 
 export default function Client() {
   const { roomId } = useParams();
-  const videoRef = useRef(null);
+  const userVideoRef = useRef(null);
   const peerConnection = useRef(null);
-  const iceCandidatesQueue = useRef([]);
 
-  console.log("roomId", roomId);
-  console.log("videoRef", videoRef);
+  console.log("userVideoRef", userVideoRef);
   console.log("peerConnection", peerConnection);
-  console.log("iceCandidatesQueue", iceCandidatesQueue);
 
   useEffect(() => {
     socket.emit("joinRoom", roomId);
@@ -27,100 +24,58 @@ export default function Client() {
   }, [roomId]);
 
   useEffect(() => {
-    socket.emit("register", { role: "receiver" });
-    peerConnection.current = new RTCPeerConnection();
-
-    // Log do estado da conexão ICE
-    peerConnection.current.oniceconnectionstatechange = () => {
-      console.log(
-        "ICE connection state:",
-        peerConnection.current.iceConnectionState
-      );
-    };
-
-    // Quando a track remota chegar, atribui ao elemento de vídeo
-    peerConnection.current.ontrack = (event) => {
-      console.log("Track recebida:", event);
-      let stream;
-      if (event.streams && event.streams[0]) {
-        stream = event.streams[0];
-      } else {
-        stream = new MediaStream();
-        stream.addTrack(event.track);
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    };
-
-    // Ao receber a oferta do host
-    socket.on("offer", (offer) => {
-      if (!peerConnection.current.remoteDescription) {
-        console.log("Oferta recebida:", offer);
-        peerConnection.current
-          .setRemoteDescription(offer)
-          .then(() => {
-            return peerConnection.current.createAnswer();
-          })
-          .then((answer) => {
-            return peerConnection.current
-              .setLocalDescription(answer)
-              .then(() => answer);
-          })
-          .then((answer) => {
-            console.log("Enviando answer:", answer);
-            socket.emit("answer", answer);
-          })
-          .catch((err) => console.error("Erro ao processar a oferta:", err));
-      }
-    });
-
-    // Recebe ICE candidates do host
-    socket.on("candidate", (candidate) => {
-      if (candidate) {
-        console.log("Candidate recebido:", candidate);
-        if (!peerConnection.current.remoteDescription) {
-          iceCandidatesQueue.current.push(candidate);
-        } else {
-          peerConnection.current
-            .addIceCandidate(candidate)
-            .catch((err) =>
-              console.error("Erro ao adicionar ICE candidate:", err)
-            );
-        }
-      }
-    });
-
-    // Checa periodicamente se o remoteDescription foi definido para aplicar os ICE candidates pendentes
-    const waitRemoteDesc = setInterval(() => {
-      if (peerConnection.current.remoteDescription) {
-        iceCandidatesQueue.current.forEach((candidate) => {
-          peerConnection.current
-            .addIceCandidate(candidate)
-            .catch((err) =>
-              console.error("Erro ao adicionar ICE candidate da fila:", err)
-            );
-        });
-        iceCandidatesQueue.current = [];
-        clearInterval(waitRemoteDesc);
-      }
-    }, 100);
+    socket.on("offer", handleOffer);
+    socket.on("answer", handleAnswer);
+    socket.on("ice-candidate", handleNewICECandidate);
 
     return () => {
-      if (peerConnection.current) {
-        peerConnection.current.close();
-      }
-      socket.off("offer");
-      socket.off("candidate");
+      socket.off("offer", handleOffer);
+      socket.off("answer", handleAnswer);
+      socket.off("ice-candidate", handleNewICECandidate);
     };
-  }, [videoRef.current]);
+  }, []);
 
-  const handleForcePlay = () => {
-    if (videoRef.current) {
-      videoRef.current
-        .play()
-        .then(() => console.log("Forçado o play do vídeo."))
-        .catch((err) => console.error("Erro ao forçar play:", err));
+  const createPeerConnection = () => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", event.candidate);
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        userVideoRef.current.srcObject = event.streams[0];
+      }
+    };
+
+    return pc;
+  };
+
+  const handleOffer = async (offer) => {
+    try {
+      if (!peerConnection.current) {
+        peerConnection.current = createPeerConnection();
+      }
+      await peerConnection.current.setRemoteDescription(offer);
+      const answer = await peerConnection.current.createAnswer();
+      await peerConnection.current.setLocalDescription(answer);
+      socket.emit("answer", answer);
+    } catch (err) {
+      console.error("Error handling offer:", err);
+    }
+  };
+
+  const handleAnswer = (answer) => {
+    peerConnection.current.setRemoteDescription(answer);
+  };
+
+  const handleNewICECandidate = (candidate) => {
+    if (peerConnection.current) {
+      peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
     }
   };
 
@@ -140,16 +95,25 @@ export default function Client() {
     <div
       onMouseMove={handleMouseMove}
       onTouchMove={handleTouchMove}
-      style={{ width: "100vw", height: "100vh", background: "#eee" }}
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#eee",
+        display: "flex",
+        alignItems: "center",
+        flexDirection: "column",
+      }}
     >
-      <h1>Cliente Conectado na Sala {roomId}</h1>
-      <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
+      <div>
+        <h1>Cliente Conectado na Sala {roomId}</h1>
+        <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
+      </div>
+
       <video
-        ref={videoRef}
+        style={{ width: "80vw", height: "80vh" }}
+        ref={userVideoRef}
         autoPlay
-        style={{ width: "450px", border: "1px solid black" }}
-      />
-      <button onClick={handleForcePlay}>Forçar Play do Vídeo</button>
+      ></video>
     </div>
   );
 }
