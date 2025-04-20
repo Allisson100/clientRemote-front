@@ -36,6 +36,12 @@ export default function Client() {
       setSharedImage(null);
     });
 
+    socket.on("stopStream", () => {
+      if (userVideoRef.current) {
+        userVideoRef.current.srcObject = null;
+      }
+    });
+
     return () => {
       socket.off("offer", handleOffer);
       socket.off("answer", handleAnswer);
@@ -149,12 +155,14 @@ export default function Client() {
         <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
       </div>
 
-      <video
-        style={{ width: "80vw", height: "80vh" }}
-        ref={userVideoRef}
-        autoPlay
-        muted
-      ></video>
+      {userVideoRef.current?.srcObject && (
+        <video
+          style={{ width: "80vw", height: "80vh" }}
+          ref={userVideoRef}
+          autoPlay
+          muted
+        ></video>
+      )}
 
       {sharedImage && (
         <div
