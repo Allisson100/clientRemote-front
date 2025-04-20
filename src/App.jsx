@@ -6,7 +6,30 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<div>OPA</div>} />
+        <Route
+          path="/"
+          element={
+            <div
+              style={{
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "3rem",
+                  color: "#000000",
+                  fontWeight: "bold",
+                }}
+              >
+                Aguarde o Host enviar o link ...
+              </p>{" "}
+            </div>
+          }
+        />
         <Route path="/client/:roomId" element={<Client />} />
       </Routes>
     </Router>

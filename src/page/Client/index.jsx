@@ -1,25 +1,27 @@
 import React, { useEffect, useRef } from "react";
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("https://f065-177-72-141-202.ngrok-free.app", {
+const socket = io("https://8b71-177-72-141-202.ngrok-free.app", {
   transports: ["websocket", "polling"],
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
 });
 
 export default function Client() {
+  const navigate = useNavigate();
   const { roomId } = useParams();
   const userVideoRef = useRef(null);
   const peerConnection = useRef(null);
 
   const [sharedImage, setSharedImage] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     socket.emit("joinRoom", roomId);
     socket.on("roomNotFound", () => {
-      alert("Sala não está mais disponível!");
+      navigate("/");
     });
   }, [roomId]);
 
@@ -38,6 +40,7 @@ export default function Client() {
 
     socket.on("stopStream", () => {
       if (userVideoRef.current) {
+        setShowVideo(false);
         userVideoRef.current.srcObject = null;
       }
     });
@@ -70,6 +73,7 @@ export default function Client() {
   };
 
   const handleOffer = async (offer) => {
+    setShowVideo(true);
     try {
       if (!peerConnection.current) {
         peerConnection.current = createPeerConnection();
@@ -150,19 +154,38 @@ export default function Client() {
         flexDirection: "column",
       }}
     >
-      <div>
-        <h1>Cliente Conectado na Sala {roomId}</h1>
-        <p>Arraste o dedo na tela para controlar o mouse do Host.</p>
-      </div>
-
-      {userVideoRef.current?.srcObject && (
-        <video
-          style={{ width: "80vw", height: "80vh" }}
-          ref={userVideoRef}
-          autoPlay
-          muted
-        ></video>
+      {!showVideo && !sharedImage && (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "3rem",
+              color: "#000000",
+              fontWeight: "bold",
+            }}
+          >
+            Aguarde o Host compartilhar ...
+          </p>{" "}
+        </div>
       )}
+
+      <video
+        style={{
+          width: "100vw",
+          height: "100vh",
+          display: !showVideo && "none",
+        }}
+        ref={userVideoRef}
+        autoPlay
+        muted
+      ></video>
 
       {sharedImage && (
         <div
