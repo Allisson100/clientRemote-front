@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("https://1676-177-72-141-5.ngrok-free.app", {
-  transports: ["websocket", "polling"], // Garante compatibilidade
-  reconnectionAttempts: 5, // Tenta reconectar até 5 vezes
-  reconnectionDelay: 1000, // Espera 1 segundo entre tentativas
+const socket = io("https://f065-177-72-141-202.ngrok-free.app", {
+  transports: ["websocket", "polling"],
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
 });
 
 export default function Client() {
@@ -13,8 +13,7 @@ export default function Client() {
   const userVideoRef = useRef(null);
   const peerConnection = useRef(null);
 
-  console.log("userVideoRef", userVideoRef);
-  console.log("peerConnection", peerConnection);
+  const [sharedImage, setSharedImage] = useState(null);
 
   useEffect(() => {
     socket.emit("joinRoom", roomId);
@@ -27,6 +26,14 @@ export default function Client() {
     socket.on("offer", handleOffer);
     socket.on("answer", handleAnswer);
     socket.on("ice-candidate", handleNewICECandidate);
+
+    socket.on("displayImage", (imageData) => {
+      setSharedImage(imageData);
+    });
+
+    socket.on("hideImage", () => {
+      setSharedImage(null);
+    });
 
     return () => {
       socket.off("offer", handleOffer);
@@ -98,32 +105,26 @@ export default function Client() {
     const handleTouchStart = (event) => {
       const currentTime = new Date().getTime();
       if (currentTime - lastTouchTime <= doubleTapThreshold) {
-        // Detectou um duplo toque
-        console.log("Duplo toque detectado!");
-        // Aqui, você pode emitir um evento para o servidor ou realizar outra ação desejada
         socket.emit("mouseDown");
       }
       lastTouchTime = currentTime;
     };
 
-    // Enviar eventos de teclado
-    const handleKeyDown = (event) => {
-      socket.emit("keyboardEvent", { key: event.key });
-    };
-
-    // Enviar eventos de mouse
+    // const handleKeyDown = (event) => {
+    //   socket.emit("keyboardEvent", { key: event.key });
+    // };
 
     const handleMouseDown = (event) => {
       socket.emit("mouseDown", { button: event.button });
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    // window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("touchstart", handleTouchStart);
 
     // Limpeza dos event listeners
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      // window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
     };
@@ -151,7 +152,35 @@ export default function Client() {
         style={{ width: "80vw", height: "80vh" }}
         ref={userVideoRef}
         autoPlay
+        muted
       ></video>
+
+      {sharedImage && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "black",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <img
+            src={sharedImage}
+            alt="Imagem Compartilhada"
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
