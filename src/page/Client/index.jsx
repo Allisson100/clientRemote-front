@@ -17,6 +17,7 @@ export default function Client() {
 
   const [sharedImage, setSharedImage] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     socket.emit("joinRoom", roomId);
@@ -51,6 +52,22 @@ export default function Client() {
       socket.off("ice-candidate", handleNewICECandidate);
     };
   }, []);
+
+  const openMobileKeyboard = () => {
+    const inputField = document.createElement("input");
+    inputField.style.position = "absolute";
+    inputField.style.opacity = "0";
+    inputField.style.pointerEvents = "none";
+    document.body.appendChild(inputField);
+    inputField.focus();
+    setIsKeyboardOpen(true);
+
+    // Enviar evento para o backend
+    socket.emit("keyboardEvent", { action: "openKeyboard" });
+
+    // Remove o campo após o foco
+    inputField.remove();
+  };
 
   const createPeerConnection = () => {
     const pc = new RTCPeerConnection({
@@ -125,21 +142,95 @@ export default function Client() {
       lastTouchTime = currentTime;
     };
 
-    // const handleKeyDown = (event) => {
-    //   socket.emit("keyboardEvent", { key: event.key });
-    // };
-
     const handleMouseDown = (event) => {
       socket.emit("mouseDown", { button: event.button });
     };
 
-    // window.addEventListener("keydown", handleKeyDown);
+    const normalizeKey = (key) => {
+      const map = {
+        " ": "space",
+        ",": "comma",
+        ".": "period",
+        "/": "slash",
+        "\\": "backslash",
+        ";": "semicolon",
+        "'": "quote",
+        "[": "openbracket",
+        "]": "closebracket",
+        "-": "minus",
+        "=": "equals",
+        "`": "grave",
+      };
+
+      const lower = key.toLowerCase();
+      return map[lower] || lower;
+    };
+
+    const handleKeyDown = (event) => {
+      const rawKey = event.key;
+      const key = normalizeKey(rawKey);
+
+      const allowedKeys = new Set([
+        ..."abcdefghijklmnopqrstuvwxyz",
+        ..."0123456789",
+        ..."f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12".split(" "),
+        "enter",
+        "escape",
+        "backspace",
+        "tab",
+        "delete",
+        "insert",
+        "home",
+        "end",
+        "pageup",
+        "pagedown",
+        "up",
+        "down",
+        "left",
+        "right",
+        "space",
+        "printscreen",
+        "shift",
+        "control",
+        "alt",
+        "command",
+        "comma",
+        "period",
+        "slash",
+        "backslash",
+        "semicolon",
+        "quote",
+        "openbracket",
+        "closebracket",
+        "minus",
+        "equals",
+        "grave",
+      ]);
+
+      if (allowedKeys.has(key)) {
+        socket.emit("keyboard-type", key);
+      }
+    };
+
+    const checkIfMobile = () => {
+      if (window.innerWidth <= 768) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(false);
+      }
+    };
+
+    checkIfMobile();
+
+    window.addEventListener("resize", checkIfMobile);
+    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("touchstart", handleTouchStart);
 
     // Limpeza dos event listeners
     return () => {
-      // window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", checkIfMobile);
+      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
     };
@@ -216,6 +307,15 @@ export default function Client() {
             }}
           />
         </div>
+      )}
+
+      {isMobile && !isKeyboardOpen && (
+        <button
+          onClick={openMobileKeyboard}
+          style={{ position: "absolute", bottom: "20px", left: "20px" }}
+        >
+          Abrir Teclado
+        </button>
       )}
     </div>
   );
