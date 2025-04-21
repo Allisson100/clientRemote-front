@@ -195,14 +195,12 @@ export default function Client() {
       }
     };
 
-    window.addEventListener("resize", checkIfMobile);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("touchstart", handleTouchStart);
 
     // Limpeza dos event listeners
     return () => {
-      window.removeEventListener("resize", checkIfMobile);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
