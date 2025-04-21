@@ -17,7 +17,6 @@ export default function Client() {
 
   const [sharedImage, setSharedImage] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     socket.emit("joinRoom", roomId);
@@ -52,21 +51,6 @@ export default function Client() {
       socket.off("ice-candidate", handleNewICECandidate);
     };
   }, []);
-
-  const openMobileKeyboard = () => {
-    const inputField = document.createElement("input");
-    inputField.style.position = "absolute";
-    inputField.style.opacity = "0";
-    inputField.style.pointerEvents = "none";
-    document.body.appendChild(inputField);
-    inputField.focus();
-
-    // Enviar evento para o backend
-    socket.emit("keyboardEvent", { action: "openKeyboard" });
-
-    // Remove o campo após o foco
-    inputField.remove();
-  };
 
   const createPeerConnection = () => {
     const pc = new RTCPeerConnection({
@@ -132,16 +116,6 @@ export default function Client() {
   useEffect(() => {
     let lastTouchTime = 0;
     const doubleTapThreshold = 300; // Intervalo máximo entre toques em milissegundos
-
-    const checkIfMobile = () => {
-      if (window.innerWidth <= 1500) {
-        setIsMobile(true);
-      } else {
-        setIsMobile(false);
-      }
-    };
-
-    checkIfMobile();
 
     const handleTouchStart = (event) => {
       const currentTime = new Date().getTime();
@@ -306,20 +280,6 @@ export default function Client() {
             }}
           />
         </div>
-      )}
-
-      {isMobile && (
-        <button
-          onClick={openMobileKeyboard}
-          style={{
-            position: "absolute",
-            bottom: "20px",
-            left: "20px",
-            backgroundColor: "red",
-          }}
-        >
-          Abrir Teclado
-        </button>
       )}
     </div>
   );
