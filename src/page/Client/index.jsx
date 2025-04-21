@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("https://8b71-177-72-141-202.ngrok-free.app", {
+const socket = io("https://e798-177-72-141-202.ngrok-free.app", {
   transports: ["websocket", "polling"],
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -100,13 +100,17 @@ export default function Client() {
   // Função para capturar o movimento do mouse
   const handleMouseMove = (event) => {
     const { clientX, clientY } = event;
-    socket.emit("moveMouse", { roomId, x: clientX, y: clientY });
+    const normalizedX = clientX / window.innerWidth;
+    const normalizedY = clientY / window.innerHeight;
+    socket.emit("moveMouse", { roomId, x: normalizedX, y: normalizedY });
   };
 
   // Função para capturar o movimento do toque no celular
   const handleTouchMove = (event) => {
-    const touch = event.touches[0]; // Pega o primeiro toque na tela
-    socket.emit("moveMouse", { roomId, x: touch.clientX, y: touch.clientY });
+    const touch = event.touches[0];
+    const normalizedX = touch.clientX / window.innerWidth;
+    const normalizedY = touch.clientY / window.innerHeight;
+    socket.emit("moveMouse", { roomId, x: normalizedX, y: normalizedY });
   };
 
   useEffect(() => {
