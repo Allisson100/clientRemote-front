@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("https://e798-177-72-141-202.ngrok-free.app", {
+const socket = io("https://ed8b-177-72-141-202.ngrok-free.app", {
   transports: ["websocket", "polling"],
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -60,7 +60,6 @@ export default function Client() {
     inputField.style.pointerEvents = "none";
     document.body.appendChild(inputField);
     inputField.focus();
-    setIsKeyboardOpen(true);
 
     // Enviar evento para o backend
     socket.emit("keyboardEvent", { action: "openKeyboard" });
@@ -133,6 +132,16 @@ export default function Client() {
   useEffect(() => {
     let lastTouchTime = 0;
     const doubleTapThreshold = 300; // Intervalo máximo entre toques em milissegundos
+
+    const checkIfMobile = () => {
+      if (window.innerWidth <= 1500) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(false);
+      }
+    };
+
+    checkIfMobile();
 
     const handleTouchStart = (event) => {
       const currentTime = new Date().getTime();
@@ -211,16 +220,6 @@ export default function Client() {
         socket.emit("keyboard-type", key);
       }
     };
-
-    const checkIfMobile = () => {
-      if (window.innerWidth <= 768) {
-        setIsMobile(true);
-      } else {
-        setIsMobile(false);
-      }
-    };
-
-    checkIfMobile();
 
     window.addEventListener("resize", checkIfMobile);
     window.addEventListener("keydown", handleKeyDown);
@@ -309,10 +308,15 @@ export default function Client() {
         </div>
       )}
 
-      {isMobile && !isKeyboardOpen && (
+      {isMobile && (
         <button
           onClick={openMobileKeyboard}
-          style={{ position: "absolute", bottom: "20px", left: "20px" }}
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "20px",
+            backgroundColor: "red",
+          }}
         >
           Abrir Teclado
         </button>
