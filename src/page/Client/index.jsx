@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 
-const socket = io("https://6cb1-177-72-141-202.ngrok-free.app", {
+const socket = io("https://7ed5-177-72-141-202.ngrok-free.app", {
   transports: ["websocket", "polling"],
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
@@ -18,40 +18,7 @@ export default function Client() {
   const [sharedImage, setSharedImage] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
 
-  useEffect(() => {
-    socket.emit("joinRoom", roomId);
-    socket.on("roomNotFound", () => {
-      navigate("/");
-    });
-  }, [roomId]);
-
-  useEffect(() => {
-    socket.on("offer", handleOffer);
-    socket.on("answer", handleAnswer);
-    socket.on("ice-candidate", handleNewICECandidate);
-
-    socket.on("displayImage", (imageData) => {
-      setSharedImage(imageData);
-    });
-
-    socket.on("hideImage", () => {
-      setSharedImage(null);
-    });
-
-    socket.on("stopStream", () => {
-      if (userVideoRef.current) {
-        setShowVideo(false);
-        userVideoRef.current.srcObject = null;
-      }
-    });
-
-    return () => {
-      socket.off("offer", handleOffer);
-      socket.off("answer", handleAnswer);
-      socket.off("ice-candidate", handleNewICECandidate);
-    };
-  }, []);
-
+  //  ### CONEXÃO HOST E CLIENT PARA STREM DO VIDEO ###
   const createPeerConnection = () => {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -96,8 +63,9 @@ export default function Client() {
       peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
     }
   };
+  //  ### CONEXÃO HOST E CLIENT PARA STREM DO VIDEO ###
 
-  // Função para capturar o movimento do mouse
+  // CAPTURA O MOUSE DO CLIENT E ENVIA PARA O BACKEND
   const handleMouseMove = (event) => {
     const { clientX, clientY } = event;
     const normalizedX = clientX / window.innerWidth;
@@ -105,7 +73,7 @@ export default function Client() {
     socket.emit("moveMouse", { roomId, x: normalizedX, y: normalizedY });
   };
 
-  // Função para capturar o movimento do toque no celular
+  // CAPTURA O TPUCH NO CELULAR DO CLIENT E ENVIA PARA O BACKEND
   const handleTouchMove = (event) => {
     const touch = event.touches[0];
     const normalizedX = touch.clientX / window.innerWidth;
@@ -113,6 +81,7 @@ export default function Client() {
     socket.emit("moveMouse", { roomId, x: normalizedX, y: normalizedY });
   };
 
+  // ESCUTA OS EVENTO DE MOUSE, TOUCH SCREEN E TECLADO
   useEffect(() => {
     let lastTouchTime = 0;
     const doubleTapThreshold = 300; // Intervalo máximo entre toques em milissegundos
@@ -206,6 +175,42 @@ export default function Client() {
     };
   }, []);
 
+  // ENTRA NA SALA DO SOCKET
+  useEffect(() => {
+    socket.emit("joinRoom", roomId);
+    socket.on("roomNotFound", () => {
+      navigate("/");
+    });
+  }, [roomId]);
+
+  //  ### CONEXÃO HOST E CLIENT PARA STREM DO VIDEO ###
+  useEffect(() => {
+    socket.on("offer", handleOffer);
+    socket.on("answer", handleAnswer);
+    socket.on("ice-candidate", handleNewICECandidate);
+
+    socket.on("displayImage", (imageData) => {
+      setSharedImage(imageData);
+    });
+
+    socket.on("hideImage", () => {
+      setSharedImage(null);
+    });
+
+    socket.on("stopStream", () => {
+      if (userVideoRef.current) {
+        setShowVideo(false);
+        userVideoRef.current.srcObject = null;
+      }
+    });
+
+    return () => {
+      socket.off("offer", handleOffer);
+      socket.off("answer", handleAnswer);
+      socket.off("ice-candidate", handleNewICECandidate);
+    };
+  }, []);
+
   return (
     <div
       onMouseMove={handleMouseMove}
@@ -213,7 +218,7 @@ export default function Client() {
       style={{
         width: "100vw",
         height: "100vh",
-        background: "#eee",
+        background: showVideo ? "#000000" : "#eee",
         display: "flex",
         alignItems: "center",
         flexDirection: "column",
