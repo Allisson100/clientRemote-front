@@ -30,7 +30,7 @@ function App() {
             </div>
           }
         />
-        <Route path="/client/:roomId" element={<Client />} />
+        <Route path="/client/:urlCode" element={<Client />} />
       </Routes>
     </Router>
   );

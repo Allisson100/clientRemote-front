@@ -2,18 +2,32 @@ import React, { useEffect, useRef } from "react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
-
-const socket = io("https://7ed5-177-72-141-202.ngrok-free.app", {
-  transports: ["websocket", "polling"],
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
+import { decryptObject } from "../../utils/handleDecryptObject";
 
 export default function Client() {
   const navigate = useNavigate();
-  const { roomId } = useParams();
+  const { urlCode } = useParams();
+
   const userVideoRef = useRef(null);
   const peerConnection = useRef(null);
+
+  const [socket, setSocket] = useState(null);
+  const [roomId, setRoomId] = useState(null);
+
+  useEffect(() => {
+    if (urlCode) {
+      const getObj = decryptObject(decodeURIComponent(urlCode));
+
+      const newSocket = io(getObj?.connectionUrl, {
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      setRoomId(getObj?.socketRoomId);
+      setSocket(newSocket);
+    }
+  }, [urlCode]);
 
   const [sharedImage, setSharedImage] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
@@ -67,6 +81,8 @@ export default function Client() {
 
   // CAPTURA O MOUSE DO CLIENT E ENVIA PARA O BACKEND
   const handleMouseMove = (event) => {
+    if (!socket) return;
+
     const { clientX, clientY } = event;
     const normalizedX = clientX / window.innerWidth;
     const normalizedY = clientY / window.innerHeight;
@@ -75,6 +91,8 @@ export default function Client() {
 
   // CAPTURA O TPUCH NO CELULAR DO CLIENT E ENVIA PARA O BACKEND
   const handleTouchMove = (event) => {
+    if (!socket) return;
+
     const touch = event.touches[0];
     const normalizedX = touch.clientX / window.innerWidth;
     const normalizedY = touch.clientY / window.innerHeight;
@@ -83,6 +101,8 @@ export default function Client() {
 
   // ESCUTA OS EVENTO DE MOUSE, TOUCH SCREEN E TECLADO
   useEffect(() => {
+    if (!socket) return;
+
     let lastTouchTime = 0;
     const doubleTapThreshold = 300; // Intervalo máximo entre toques em milissegundos
 
@@ -173,18 +193,22 @@ export default function Client() {
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
     };
-  }, []);
+  }, [socket]);
 
   // ENTRA NA SALA DO SOCKET
   useEffect(() => {
+    if (!socket) return;
+
     socket.emit("joinRoom", roomId);
     socket.on("roomNotFound", () => {
       navigate("/");
     });
-  }, [roomId]);
+  }, [roomId, socket]);
 
   //  ### CONEXÃO HOST E CLIENT PARA STREM DO VIDEO ###
   useEffect(() => {
+    if (!socket) return;
+
     socket.on("offer", handleOffer);
     socket.on("answer", handleAnswer);
     socket.on("ice-candidate", handleNewICECandidate);
@@ -209,7 +233,7 @@ export default function Client() {
       socket.off("answer", handleAnswer);
       socket.off("ice-candidate", handleNewICECandidate);
     };
-  }, []);
+  }, [socket]);
 
   return (
     <div
