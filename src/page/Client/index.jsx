@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { decryptObject } from "../../utils/handleDecryptObject";
+import StyledInput from "../../components/StyledInput";
 
 export default function Client() {
   const navigate = useNavigate();
@@ -14,23 +15,9 @@ export default function Client() {
   const [socket, setSocket] = useState(null);
   const [roomId, setRoomId] = useState(null);
 
-  useEffect(() => {
-    if (urlCode) {
-      const getObj = decryptObject(decodeURIComponent(urlCode));
-
-      const newSocket = io(getObj?.connectionUrl, {
-        transports: ["websocket", "polling"],
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      setRoomId(getObj?.socketRoomId);
-      setSocket(newSocket);
-    }
-  }, [urlCode]);
-
   const [sharedImage, setSharedImage] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
+  const [inputValue, setInputValue] = useState("");
 
   //  ### CONEXÃO HOST E CLIENT PARA STREM DO VIDEO ###
   const createPeerConnection = () => {
@@ -97,6 +84,15 @@ export default function Client() {
     const normalizedX = touch.clientX / window.innerWidth;
     const normalizedY = touch.clientY / window.innerHeight;
     socket.emit("moveMouse", { roomId, x: normalizedX, y: normalizedY });
+  };
+
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+
+    socket.emit("inputValueChange", {
+      roomId,
+      value: e.target.value,
+    });
   };
 
   // ESCUTA OS EVENTO DE MOUSE, TOUCH SCREEN E TECLADO
@@ -184,16 +180,26 @@ export default function Client() {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("touchstart", handleTouchStart);
+    if (sharedImage) {
+      console.log("DELETAR");
+
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("touchstart", handleTouchStart);
+    } else {
+      console.log("CRIAR");
+
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("mousedown", handleMouseDown);
+      window.addEventListener("touchstart", handleTouchStart);
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
     };
-  }, [socket]);
+  }, [socket, sharedImage]);
 
   // ENTRA NA SALA DO SOCKET
   useEffect(() => {
@@ -234,6 +240,21 @@ export default function Client() {
       socket.off("ice-candidate", handleNewICECandidate);
     };
   }, [socket]);
+
+  useEffect(() => {
+    if (urlCode) {
+      const getObj = decryptObject(decodeURIComponent(urlCode));
+
+      const newSocket = io(getObj?.connectionUrl, {
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+
+      setRoomId(getObj?.socketRoomId);
+      setSocket(newSocket);
+    }
+  }, [urlCode]);
 
   return (
     <div
@@ -284,27 +305,40 @@ export default function Client() {
       {sharedImage && (
         <div
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "black",
+            backgroundColor: "#ffffff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 9999,
+            flexDirection: "column",
+            gap: "1rem",
+            padding: "2rem",
           }}
         >
-          <img
-            src={sharedImage}
-            alt="Imagem Compartilhada"
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              objectFit: "contain",
-            }}
+          <StyledInput
+            value={inputValue}
+            handleInputChange={handleInputChange}
           />
+          <div
+            style={{
+              textAlign: "center",
+              width: "100%",
+              height: "60%",
+              backgroundColor: "#000000",
+              borderRadius: "2rem",
+            }}
+          >
+            <img
+              src={sharedImage}
+              alt="Imagem Compartilhada"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
