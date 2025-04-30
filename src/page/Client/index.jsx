@@ -181,14 +181,10 @@ export default function Client() {
     };
 
     if (sharedImage) {
-      console.log("DELETAR");
-
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("touchstart", handleTouchStart);
     } else {
-      console.log("CRIAR");
-
       window.addEventListener("keydown", handleKeyDown);
       window.addEventListener("mousedown", handleMouseDown);
       window.addEventListener("touchstart", handleTouchStart);
@@ -232,6 +228,10 @@ export default function Client() {
         setShowVideo(false);
         userVideoRef.current.srcObject = null;
       }
+    });
+
+    socket.on("navigate", () => {
+      navigate("/");
     });
 
     return () => {
